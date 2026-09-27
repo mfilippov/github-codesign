@@ -1,0 +1,15 @@
+# systemd user unit template: ~/.config/systemd/user/gh-runner@.service
+# Instance = gh-runner instance name, registered beforehand with `gh-runner register`.
+[Unit]
+Description=GitHub Actions runner %i (rootless Podman)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=%h/.local/bin/gh-runner run %i
+ExecStop=/usr/bin/podman stop -t 30 gh-runner-%i
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target

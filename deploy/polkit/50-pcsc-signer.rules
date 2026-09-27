@@ -1,0 +1,8 @@
+// Only the signer user may talk to pcscd, and so to the YubiKey.
+polkit.addRule(function(action, subject) {
+    if ((action.id == "org.debian.pcsc-lite.access_pcsc" ||
+         action.id == "org.debian.pcsc-lite.access_card") &&
+        subject.user == "signer") {
+        return polkit.Result.YES;
+    }
+});

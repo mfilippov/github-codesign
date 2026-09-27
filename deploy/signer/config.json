@@ -1,0 +1,12 @@
+{
+  "spool": "/var/spool/codesign",
+  "slot": "9a",
+  "repos": [
+    {
+      "repo": "mfilippov/caps-lang",
+      "workflows": [".github/workflows/release.yml"],
+      "branches": ["v*"],
+      "require_attestation": true
+    }
+  ]
+}

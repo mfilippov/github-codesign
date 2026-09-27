@@ -1,0 +1,12 @@
+*.exe
+*.dll
+*.msi
+*.pem
+*.crt
+*.cer
+*.p12
+*.pfx
+.env
+NUL
+build/
+CLAUDE.local.md

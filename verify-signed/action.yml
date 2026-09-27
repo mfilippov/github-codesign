@@ -1,0 +1,32 @@
+name: Verify signed files
+description: >
+  Before releasing, prove that signed files are exactly the attested GitHub-hosted build plus a
+  valid Authenticode signature by the pinned certificate. Run it on a GitHub-hosted runner.
+inputs:
+  signed:
+    description: Directory with the signed files.
+    required: true
+  unsigned:
+    description: Directory with the unsigned build (the artifact that was sent for signing).
+    required: true
+  leaf-hash:
+    description: SHA256 of the signing certificate (DER), as for osslsigncode -require-leaf-hash.
+    # SSL.com OV code signing, CN=Mikhail Filippov, valid until 2027-09-03.
+    default: sha256:570888b9c4b5d37296f531c84b18f2c8da1521950c816fa7e197d05011ad2d3b
+  signer-workflow:
+    description: Workflow that must have attested the unsigned build (default this workflow).
+    default: ''
+  token:
+    description: Token for reading attestations.
+    default: ${{ github.token }}
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        SIGNED: ${{ inputs.signed }}
+        UNSIGNED: ${{ inputs.unsigned }}
+        LEAF_HASH: ${{ inputs.leaf-hash }}
+        SIGNER_WORKFLOW: ${{ inputs.signer-workflow }}
+        GH_TOKEN: ${{ inputs.token }}
+      run: '"$GITHUB_ACTION_PATH/verify-signed.sh"'

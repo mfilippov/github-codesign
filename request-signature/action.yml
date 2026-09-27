@@ -1,0 +1,24 @@
+name: Request code signature
+description: >
+  Runs on a codesign runner: submits a signing request for an artifact of this run to the
+  sign-pending spool and waits until it is approved and signed on the signing host.
+inputs:
+  artifact:
+    description: Name of the artifact of this run to sign.
+    default: unsigned
+  spool:
+    description: Spool directory as mounted into the runner container.
+    default: /spool
+outputs:
+  dir:
+    description: Directory with the signed files (same relative paths as in the artifact).
+    value: ${{ steps.sign.outputs.dir }}
+runs:
+  using: composite
+  steps:
+    - id: sign
+      shell: bash
+      env:
+        ARTIFACT: ${{ inputs.artifact }}
+        SPOOL: ${{ inputs.spool }}
+      run: '"$GITHUB_ACTION_PATH/request-signature.sh"'
