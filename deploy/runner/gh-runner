@@ -23,7 +23,7 @@ check_instance() {
 podman_run() {
     local instance=$1; shift
     local args=(--rm --name "gh-runner-$instance"
-        --userns=keep-id:uid=1001,gid=1001
+        "--userns=keep-id:uid=1001,gid=1001"
         --cap-drop=all --security-opt=no-new-privileges
         -v "gh-runner-$instance:/home/runner")
     local v

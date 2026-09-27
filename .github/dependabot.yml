@@ -1,0 +1,10 @@
+# Updates the SHA-pinned actions in the workflows (the version comment is updated too).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']

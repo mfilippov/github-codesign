@@ -1,4 +1,3 @@
-arch=$(dpkg --print-architecture)
 #!/usr/bin/env bash
 # Set up a signing host (Ubuntu, arm64 or amd64) with the YubiKey attached:
 # packages, users, polkit rule, spool, sign-pending, certificate chain and the runner tooling.
