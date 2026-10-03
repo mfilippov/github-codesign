@@ -56,9 +56,11 @@ while read -r f; do
     n=$(stat -c %s "$UNSIGNED/$f")
     m=$(stat -c %s "$tmp/stripped")
     if ((m > n)); then
-        ((m - n < 8 && m % 8 == 0)) &&
-            cmp -s <(tail -c +$((n + 1)) "$tmp/stripped") <(head -c $((m - n)) /dev/zero) ||
-            { echo "::error::$f: signed file is not the attested build plus a signature"; exit 1; }
+        if ! ((m - n < 8 && m % 8 == 0)) ||
+            ! cmp -s <(tail -c +$((n + 1)) "$tmp/stripped") <(head -c $((m - n)) /dev/zero); then
+            echo "::error::$f: signed file is not the attested build plus a signature"
+            exit 1
+        fi
         truncate -s "$n" "$tmp/stripped"
     fi
     a=$(pe_digest "$tmp/stripped")
