@@ -176,7 +176,9 @@ Checks before the approval screen (failure → `rejected`, the job fails fast):
   counted on real data; nothing is already signed;
 - provenance for every file (if required).
 
-Network or YubiKey errors and "skip" leave the request pending for a retry.
+Network or YubiKey errors and "skip" leave the request pending for a retry. A file whose
+signing fails without costing a PIN try (a missed touch, a TSA error) can be retried on the
+spot with the same PIN; after a wrong PIN `sign-pending` stops.
 
 ## Key policies
 
