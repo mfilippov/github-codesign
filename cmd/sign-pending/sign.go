@@ -32,16 +32,17 @@ func isSigned(in, scratch string) bool {
 
 // signFile runs osslsigncode with the PIN passed through an inherited pipe (fd 3), so it
 // never appears in argv, the environment or on disk. Every run is a new PKCS#11 session,
-// which with PIN policy ONCE means the PIN is needed each time.
-func signFile(cfg *Config, pin []byte, in, out string) error {
+// which with PIN policy ONCE means the PIN is needed each time. osslsigncode's output is
+// returned rather than printed: on a missed touch it is a page of OpenSSL internals.
+func signFile(cfg *Config, pin []byte, in, out string) ([]byte, error) {
 	r, w, err := os.Pipe()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer r.Close()
 	if _, err := w.Write(pin); err != nil {
 		w.Close()
-		return err
+		return nil, err
 	}
 	w.Close()
 
@@ -55,9 +56,7 @@ func signFile(cfg *Config, pin []byte, in, out string) error {
 		"-out", out)
 	cmd.Env = append(os.Environ(), "PKCS11_PROVIDER_MODULE="+cfg.PKCS11Module)
 	cmd.ExtraFiles = []*os.File{r}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	return cmd.CombinedOutput()
 }
 
 // verifyProvenance checks the file's Sigstore build provenance with `gh attestation verify`:
