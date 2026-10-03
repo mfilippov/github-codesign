@@ -18,9 +18,11 @@ repo=$1 workflow=${2:-.github/workflows/release.yml}
 : "${CODESIGN_HOST:?set CODESIGN_HOST to the signing host}"
 
 # Git Bash ships its own ssh, which does not see keys in the Windows OpenSSH agent.
-ssh=ssh
-if [[ $(uname -s) == MINGW* && -x /c/Windows/System32/OpenSSH/ssh.exe ]]; then
-    ssh=/c/Windows/System32/OpenSSH/ssh.exe
+ssh=${SSH:-ssh}
+if [[ -z ${SSH:-} && $(uname -s) == MINGW* ]]; then
+    for c in "/c/Program Files/OpenSSH/ssh.exe" /c/Windows/System32/OpenSSH/ssh.exe; do
+        if [[ -x $c ]]; then ssh=$c; break; fi
+    done
 fi
 
 gh api "repos/$repo" --jq .full_name >/dev/null

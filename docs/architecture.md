@@ -79,8 +79,9 @@ runners keep state between jobs, and every extra job is untrusted code next to t
 
 - **Rootless Podman.** A container escape lands in `github-runner`, which is not in the polkit
   rule. Never mount the Podman socket, `/dev/bus/usb` or the pcscd socket into containers.
-- **Persistent runners, no PAT on the host.** Each runner is registered once by hand with the
-  single-use token from the repository's Settings → Actions → Runners (`gh-runner register`),
+- **Persistent runners, no PAT on the host.** Each runner is registered once with the single-use
+  registration token, fetched with the admin's own `gh` by `scripts/onboard-repo.sh` and typed
+  into `gh-runner register` on the host (via `codesign-add-repo`),
   and runs in its own container and volume (`deploy/runner/gh-runner`, user unit
   `gh-runner@<instance>`). Container uid 1001 (`runner`) is mapped to `github-runner`
   (`--userns=keep-id`), so it can write `requests/` and read `results/`. The job's workspace is

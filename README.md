@@ -32,6 +32,7 @@ GitHub-hosted: verify-signed → attest signed files → draft release
 | `verify-signed/` | Composite action for the release job: signed files = attested build + our signature |
 | `deploy/` | polkit rule, spool (tmpfiles.d), example `sign-pending` config, runner script and unit |
 | `scripts/install-badger.sh` | Sets up a signing host (Ubuntu) |
+| `scripts/onboard-repo.sh` | Onboards a repository: settings, allowlist entry, codesign runner |
 
 ## Signing host setup
 
@@ -56,8 +57,16 @@ repository settings and the codesign runner.
 ## Using it in a repository
 
 Repository settings: fork PR workflow approval for all external contributors, an environment
-`codesign` with you as required reviewer and deployment tags `v*`, a codesign runner (see the
-installer output) and an entry in the `sign-pending` allowlist with `require_attestation`.
+`codesign` with you as required reviewer and deployment tags `v*`, a codesign runner and an
+entry in the `sign-pending` allowlist with `require_attestation`. All of it in one go, from
+your machine with `gh` logged in as the repository admin:
+
+```bash
+CODESIGN_HOST=<signing host> scripts/onboard-repo.sh owner/repo [.github/workflows/release.yml]
+```
+
+It asks for your sudo password on the host and, for a new runner, for the registration token
+it copied to the clipboard. Safe to re-run.
 
 ```yaml
 on:

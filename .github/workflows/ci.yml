@@ -32,5 +32,5 @@ jobs:
           persist-credentials: false
       - name: shellcheck
         run: >
-          shellcheck scripts/install-badger.sh deploy/runner/gh-runner
+          shellcheck scripts/install-badger.sh scripts/onboard-repo.sh deploy/runner/gh-runner deploy/codesign-add-repo
           request-signature/request-signature.sh verify-signed/verify-signed.sh

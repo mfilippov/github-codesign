@@ -31,7 +31,7 @@ Signed-By: /etc/apt/keyrings/githubcli-archive-keyring.gpg
 SOURCES
 apt-get update
 apt-get install -y pcscd yubikey-manager ykcs11 opensc osslsigncode pkcs11-provider \
-    podman uidmap passt crun systemd-container gh
+    podman uidmap passt crun systemd-container gh jq
 # The libccid udev rule may have been loaded before the pcscd group existed; reload udev so
 # the reader gets the right group (otherwise pcscd logs LIBUSB_ERROR_ACCESS).
 systemctl restart systemd-udevd
@@ -52,6 +52,7 @@ install -m 644 "$src/deploy/tmpfiles.d/codesign.conf" /etc/tmpfiles.d/
 systemd-tmpfiles --create /etc/tmpfiles.d/codesign.conf
 
 install -m 755 "$src/sign-pending" /usr/local/bin/
+install -m 755 "$src/deploy/codesign-add-repo" /usr/local/sbin/
 
 conf=/home/signer/.config/github-codesign
 runuser -u signer -- mkdir -p "$conf"
@@ -92,14 +93,8 @@ Done. Remaining manual steps:
    config.json decides what gets signed). Paste, Enter, Ctrl-D:
      sudo runuser -u signer -- sh -c 'umask 077; cat > /home/signer/.config/github-codesign/token'
 
-2. Per repository <repo>:
-   - add it to /home/signer/.config/github-codesign/config.json
-   - repo settings: fork PR workflow approval "all external contributors";
-     environment "codesign" with you as required reviewer, deployment tags "v*"
-   - register a codesign runner (token from Settings → Actions → Runners → New runner):
-       sudo machinectl shell github-runner@ /bin/bash -l
-       ~/.local/bin/gh-runner register --no-default-labels <repo>-codesign \
-           https://github.com/<owner>/<repo> codesign \
-           /var/spool/codesign/requests:/spool/requests /var/spool/codesign/results:/spool/results:ro
-       systemctl --user enable --now gh-runner@<repo>-codesign
+2. Per repository, from your machine (gh logged in as the repository admin):
+     CODESIGN_HOST=<this host> scripts/onboard-repo.sh <owner>/<repo> [workflow]
+   It sets the repository settings (fork PR approval, environment "codesign"), then runs
+   "sudo codesign-add-repo" here over SSH: allowlist entry and codesign runner.
 MSG
