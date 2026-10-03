@@ -253,12 +253,29 @@ func approveAndSign(cfg *Config, tty *TTY, files []File, outDir string) (map[str
 		if err := os.MkdirAll(filepath.Dir(signed), 0o700); err != nil {
 			return nil, nil, err
 		}
-		fmt.Printf("\nSigning %s — touch the YubiKey when it blinks\n", clean(f.Name))
-		if err := signFile(cfg, pin, f.Path, signed); err != nil {
-			if t, terr := pinTries(); terr == nil {
-				fmt.Printf("PIN tries remaining: %d of 3\n", t)
+		for {
+			fmt.Printf("\nSigning %s — touch the YubiKey when it blinks\n", clean(f.Name))
+			err := signFile(cfg, pin, f.Path, signed)
+			if err == nil {
+				break
 			}
-			return nil, nil, fmt.Errorf("signing %s: %w", f.Name, err)
+			// A wrong PIN costs a try and is never sent again. Anything else (a missed touch, a
+			// TSA hiccup) can be retried with the same PIN instead of redoing the whole request.
+			t, terr := pinTries()
+			if terr != nil || t < tries {
+				if terr == nil {
+					fmt.Printf("PIN tries remaining: %d of 3\n", t)
+				}
+				return nil, nil, fmt.Errorf("signing %s: %w", f.Name, err)
+			}
+			ans, cerr := tty.Choose("Signing failed (not a wrong PIN). Retry this file? [r=retry/a=abort] ", "r", "a")
+			if cerr != nil {
+				return nil, nil, cerr
+			}
+			if ans == "a" {
+				return nil, nil, fmt.Errorf("signing %s: %w", f.Name, err)
+			}
+			os.Remove(signed)
 		}
 		if err := verifyFile(cfg, signed); err != nil {
 			return nil, nil, err
