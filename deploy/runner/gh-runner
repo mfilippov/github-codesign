@@ -22,7 +22,8 @@ check_instance() {
 # the runner owns its volume and the host user's files (spool) are writable as usual.
 podman_run() {
     local instance=$1; shift
-    local args=(--rm --name "gh-runner-$instance"
+    # --replace: a container left over from an unclean shutdown would otherwise block the name.
+    local args=(--rm --replace --name "gh-runner-$instance"
         "--userns=keep-id:uid=1001,gid=1001"
         --cap-drop=all --security-opt=no-new-privileges
         -v "gh-runner-$instance:/home/runner")

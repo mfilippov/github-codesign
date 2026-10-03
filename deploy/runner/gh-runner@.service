@@ -2,8 +2,6 @@
 # Instance = gh-runner instance name, registered beforehand with `gh-runner register`.
 [Unit]
 Description=GitHub Actions runner %i (rootless Podman)
-Wants=network-online.target
-After=network-online.target
 
 [Service]
 ExecStart=%h/.local/bin/gh-runner run %i
