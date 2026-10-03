@@ -255,7 +255,7 @@ func approveAndSign(cfg *Config, tty *TTY, files []File, outDir string) (map[str
 		}
 		for {
 			fmt.Printf("\nSigning %s — touch the YubiKey when it blinks\n", clean(f.Name))
-			err := signFile(cfg, pin, f.Path, signed)
+			output, err := signFile(cfg, pin, f.Path, signed)
 			if err == nil {
 				break
 			}
@@ -263,16 +263,27 @@ func approveAndSign(cfg *Config, tty *TTY, files []File, outDir string) (map[str
 			// TSA hiccup) can be retried with the same PIN instead of redoing the whole request.
 			t, terr := pinTries()
 			if terr != nil || t < tries {
+				os.Stdout.Write(output)
 				if terr == nil {
 					fmt.Printf("PIN tries remaining: %d of 3\n", t)
 				}
 				return nil, nil, fmt.Errorf("signing %s: %w", f.Name, err)
 			}
-			ans, cerr := tty.Choose("Signing failed (not a wrong PIN). Retry this file? [r=retry/a=abort] ", "r", "a")
+			fmt.Println("✗ Not signed: no touch in time, or a timestamp server error (PIN accepted)")
+			var ans string
+			var cerr error
+			for {
+				ans, cerr = tty.Choose("Retry this file? [r=retry/d=details/a=abort] ", "r", "d", "a")
+				if cerr != nil || ans != "d" {
+					break
+				}
+				os.Stdout.Write(output)
+			}
 			if cerr != nil {
 				return nil, nil, cerr
 			}
 			if ans == "a" {
+				os.Stdout.Write(output)
 				return nil, nil, fmt.Errorf("signing %s: %w", f.Name, err)
 			}
 			os.Remove(signed)
