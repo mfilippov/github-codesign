@@ -5,7 +5,8 @@
 #   2. the signed file has a valid Authenticode signature + timestamp from the certificate
 #      with LEAF_HASH;
 #   3. the signed file without its signature equals the unsigned file, except the PE CheckSum
-#      (recomputed on signing, not covered by Authenticode).
+#      (recomputed on signing, not covered by Authenticode) and the zero padding to a multiple
+#      of 8 bytes that signing adds before the signature and remove-signature leaves behind.
 # Both directories must contain the same set of files.
 # Env: SIGNED, UNSIGNED, LEAF_HASH, SIGNER_WORKFLOW (optional), GH_TOKEN, GITHUB_*.
 set -euo pipefail
@@ -52,6 +53,14 @@ while read -r f; do
         { cat "$tmp/log"; echo "::error::$f: signature check failed"; exit 1; }
 
     osslsigncode remove-signature -in "$SIGNED/$f" -out "$tmp/stripped" >/dev/null
+    n=$(stat -c %s "$UNSIGNED/$f")
+    m=$(stat -c %s "$tmp/stripped")
+    if ((m > n)); then
+        ((m - n < 8 && m % 8 == 0)) &&
+            cmp -s <(tail -c +$((n + 1)) "$tmp/stripped") <(head -c $((m - n)) /dev/zero) ||
+            { echo "::error::$f: signed file is not the attested build plus a signature"; exit 1; }
+        truncate -s "$n" "$tmp/stripped"
+    fi
     a=$(pe_digest "$tmp/stripped")
     b=$(pe_digest "$UNSIGNED/$f")
     [[ $a == "$b" ]] ||
