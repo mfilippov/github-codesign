@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Signing host side of onboarding a repository (scripts/onboard-repo.sh calls it over SSH):
+# adds the repository to the sign-pending allowlist and registers its codesign runner.
+#
+#   sudo codesign-add-repo [--no-runner] <owner/repo> [workflow]
+#
+# workflow defaults to .github/workflows/release.yml. Asks for the runner registration token
+# (Settings → Actions → Runners → New self-hosted runner, or the one onboard-repo.sh copied).
+set -euo pipefail
+
+CONFIG=/home/signer/.config/github-codesign/config.json
+GH_RUNNER=/home/github-runner/.local/bin/gh-runner
+SPOOL=/var/spool/codesign
+
+usage() { sed -n '5s/^#   //p' "$0" >&2; exit 2; }
+
+runner=1
+if [[ ${1:-} == --no-runner ]]; then runner=0; shift; fi
+[[ $# -ge 1 && $# -le 2 ]] || usage
+repo=$1 workflow=${2:-.github/workflows/release.yml}
+
+# Same rule as sign-pending's repoRe.
+[[ $repo =~ ^[A-Za-z0-9-]{1,39}/[A-Za-z0-9._-]{1,100}$ ]] || { echo "bad repository: $repo" >&2; exit 2; }
+[[ $workflow =~ ^\.github/workflows/[A-Za-z0-9._-]+\.ya?ml$ ]] || { echo "bad workflow: $workflow" >&2; exit 2; }
+[[ $EUID -eq 0 ]] || { echo "run with sudo" >&2; exit 1; }
+
+# Allowlist. An existing entry is left alone: it may have been tuned by hand.
+if jq -e --arg r "$repo" '.repos[] | select(.repo == $r)' "$CONFIG" >/dev/null; then
+    echo "$repo is already in the allowlist:"
+    jq --arg r "$repo" '.repos[] | select(.repo == $r)' "$CONFIG"
+else
+    tmp=$(mktemp "$CONFIG.XXXXXX")
+    trap 'rm -f "$tmp"' EXIT
+    jq --arg r "$repo" --arg w "$workflow" \
+        '.repos += [{repo: $r, workflows: [$w], branches: ["v*"], require_attestation: true}]' \
+        "$CONFIG" >"$tmp"
+    chown --reference="$CONFIG" "$tmp"
+    chmod --reference="$CONFIG" "$tmp"
+    mv "$tmp" "$CONFIG"
+    trap - EXIT
+    echo "Added $repo ($workflow, tags v*) to the allowlist."
+fi
+
+[[ $runner == 1 ]] || exit 0
+
+# Instance names allow [a-z0-9-] only (gh-runner check_instance).
+name=${repo#*/}
+name=${name,,}
+name=${name//[^a-z0-9-]/-}
+instance="${name:0:54}-codesign"
+
+# machinectl shell gives the command a full login session of github-runner (user systemd,
+# XDG_RUNTIME_DIR), which rootless Podman needs, and a terminal for the token prompt.
+machinectl shell -q github-runner@ "$GH_RUNNER" register --no-default-labels "$instance" \
+    "https://github.com/$repo" codesign \
+    "$SPOOL/requests:/spool/requests" "$SPOOL/results:/spool/results:ro"
+machinectl shell -q github-runner@ /usr/bin/systemctl --user enable --now "gh-runner@$instance"
+echo "Runner badger-$instance started."

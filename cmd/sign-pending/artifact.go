@@ -18,7 +18,7 @@ import (
 // an error rather than silently passed through unsigned.
 var signableExt = map[string]bool{".exe": true, ".dll": true, ".msi": true}
 
-var nameComponentRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$`)
+var nameComponentRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.+-]{0,127}$`)
 
 const maxArtifactFiles = 64
 

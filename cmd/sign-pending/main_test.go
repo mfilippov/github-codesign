@@ -31,13 +31,13 @@ func TestParseRequest(t *testing.T) {
 }
 
 func TestCheckEntryName(t *testing.T) {
-	for _, n := range []string{"foo.exe", "bin/foo.DLL", "foo-1.2.3+x.msi"} {
+	for _, n := range []string{"foo.exe", "bin/foo.DLL", "foo-1.2.3+x.msi", "dirmngr_ldap.exe"} {
 		if err := checkEntryName(n); err != nil {
 			t.Errorf("%s: %v", n, err)
 		}
 	}
 	for _, n := range []string{"", "/foo.exe", "../foo.exe", "a/../foo.exe", `a\foo.exe`,
-		"./foo.exe", ".foo.exe", "a//foo.exe", "foo.txt", "foo", "foo.exe/"} {
+		"./foo.exe", ".foo.exe", "_foo.exe", "a//foo.exe", "foo.txt", "foo", "foo.exe/"} {
 		if err := checkEntryName(n); err == nil {
 			t.Errorf("accepted %q", n)
 		}
